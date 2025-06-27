@@ -7,7 +7,7 @@
 /**
  * Описание товара (карточки товара)
  */
-export interface IProduct {
+interface IProduct {
     id: string;            // Уникальный идентификатор товара
     title: string;         // Название товара
     image: string;         // URL изображения товара
@@ -20,7 +20,7 @@ export interface IProduct {
   /**
    * Заказ, сформированный пользователем
    */
-  export interface IOrder {
+ interface IOrder {
     payment: string;   // Способ оплаты (например, "наличные", "карта")
     total: number;     // Общая сумма заказа
     address: string;   // Адрес доставки
@@ -33,7 +33,7 @@ export interface IProduct {
    * Данные формы доставки (выбор оплаты и адреса)
    * Используется в CheckoutForm, AddressForm
    */
-  export interface IDeliveryData {
+ interface IDeliveryData {
     payment: string;
     address: string;
   }
@@ -42,7 +42,7 @@ export interface IProduct {
    * Контактные данные покупателя
    * Используется в CheckoutForm, ContactForm
    */
-  export interface IContactData {
+  interface IContactData {
     email: string;
     phone: string;
   }
@@ -112,7 +112,7 @@ export interface IProduct {
   /**
    * Представление карточки товара в каталоге
    */
-  export interface IProductCardView {
+ interface IProductCardView {
     setText(text: string): void;                   // Установить текст (название, описание)
     setFormattedPrice(price: number | null): void; // Установить и отформатировать цену
     setCategoryClass(category: string): void;      // Установить CSS класс для категории
@@ -162,7 +162,7 @@ export interface IProduct {
   /**
    * Список всех возможных событий в приложении
    */
-  export enum AppEvents {
+  enum AppEvents {
     ProductAdded = 'product:add',
     ProductRemoved = 'product:remove',
     OrderSubmitted = 'order:submit',
@@ -215,7 +215,7 @@ export interface IProduct {
   /**
    * Базовый UI-компонент
    */
-  export interface IComponent {
+  interface IComponent {
     render(): HTMLElement;
     setVisible(): void;
     setHidden(): void;
