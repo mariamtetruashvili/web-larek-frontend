@@ -1,14 +1,18 @@
+// Импорт глобальных стилей
 import './scss/styles.scss';
 
+// Импорт констант и внешних библиотек
 import { API_URL, CDN_URL } from './utils/constants';
 import EventEmitter from 'events';
 
+// Импорт моделей и сервисов для работы с данными
 import { BasketModel } from './components/models/BasketModel';
 import { CartStorage } from './components/models/CartStorage';
 import { CatalogService } from './components/models/CatalogService';
 import { CheckoutForm } from './components/models/CheckoutForm';
 import { CurrentItem } from './components/models/CurrentItem';
 
+// Импорт представлений (View) для управления UI и взаимодействием
 import { CartView } from './components/views/CartView';
 import { ProductCard } from './components/views/ProductCard';
 import { ProductPreviewView } from './components/views/ProductPreviewView';
@@ -20,9 +24,10 @@ import { BasketView } from './components/views/BasketView';
 import { OrderFormView } from './components/views/OrderView';
 import { SuccessModalView } from './components/views/SuccessModalView';
 
+// Импорт типов и событий для системы событий
 import { AppEvents, IDeliveryDataEvent, IContactDataEvent } from './types';
 
-// Получаем элементы DOM для работы с модальными окнами и интерфейсом
+// Получение элементов DOM, необходимых для работы с модальными окнами и основным интерфейсом
 const container = document.querySelector('.page__wrapper') as HTMLElement;
 
 const orderTemplate = document.querySelector('#order') as HTMLTemplateElement;
@@ -37,7 +42,7 @@ const productPreviewTemplate = document.querySelector(
 	'#card-preview'
 ) as HTMLTemplateElement;
 
-// Создаем объекты сервисов и моделей
+// Создание экземпляров сервисов и моделей для работы с данными и хранилищем
 const events = new EventEmitter();
 const catalogService = new CatalogService(API_URL, CDN_URL);
 const cartStorage = new CartStorage();
@@ -48,14 +53,14 @@ const currentItem = new CurrentItem();
 
 const popup = new Popup();
 
-// Создаем и добавляем модальные окна в контейнер
+// Создание и добавление модальных окон в DOM
 const orderModal = popup.createModal();
 const basketModal = popup.createModal();
 
 container.appendChild(orderModal);
 container.appendChild(basketModal);
 
-// Получаем контейнеры содержимого модальных окон
+// Получение контейнеров для содержимого модальных окон
 const orderModalContent = orderModal.querySelector(
 	'.modal__content'
 ) as HTMLElement;
@@ -63,13 +68,13 @@ const basketModalContent = basketModal.querySelector(
 	'.modal__content'
 ) as HTMLElement;
 
-// Вставляем шаблоны в модальные окна
+// Вставка шаблонов в соответствующие модальные окна
 orderModalContent.appendChild(orderTemplate.content.cloneNode(true));
 orderModalContent.appendChild(contactsTemplate.content.cloneNode(true));
 orderModalContent.appendChild(successTemplate.content.cloneNode(true));
 basketModalContent.appendChild(basketTemplate.content.cloneNode(true));
 
-// Элементы для каталога и корзины
+// Элементы интерфейса для каталога и корзины
 const catalogContainer = document.querySelector('.gallery') as HTMLElement;
 const cartCounterElement = document.querySelector(
 	'.header__basket-counter'
@@ -94,28 +99,32 @@ const contactFormElement = orderModal.querySelector(
 	'form[name="contacts"]'
 ) as HTMLFormElement;
 
-// Создаем представления
+// Создание представлений для управления отображением и взаимодействием
 const cartView = new CartView(cartCounterElement, cartPriceElement);
 const addressFormView = new AddressFormView(addressFormElement, events);
 const contactFormView = new ContactFormView(contactFormElement, events, popup);
 const successMessageView = new SuccessMessageView(successContainer);
+
+// Создание BasketView для управления корзиной в модальном окне
 const basketView = new BasketView(
 	basketModal,
 	basketListElement,
 	document.querySelector('#card-basket') as HTMLTemplateElement,
 	cart,
 	cartView,
-	popup
+	popup,
+	events // Передаем EventEmitter для обработки событий
 );
 
-// Обработчик открытия корзины по кнопке
+// Кнопка для открытия корзины - навешиваем обработчик клика
 const basketButton = document.querySelector('.header__basket') as HTMLElement;
 basketButton.addEventListener('click', () => basketView.openBasket());
 
-// Обработчик кнопки оформления заказа в корзине
-basketModal.querySelector('.basket__button')?.addEventListener('click', () => {
+// MVP: обработка события начала оформления заказа
+events.on(AppEvents.OrderStarted, () => {
 	popup.close(basketModal);
 
+	// Создаем модальное окно оформления заказа и добавляем в DOM
 	const orderModal = popup.createModal();
 	const orderContent = orderModal.querySelector(
 		'.modal__content'
@@ -125,13 +134,15 @@ basketModal.querySelector('.basket__button')?.addEventListener('click', () => {
 	container.appendChild(orderModal);
 	popup.open(orderModal);
 
+	// Инициализация формы заказа и её обработчиков
 	const orderForm = orderModal.querySelector(
 		'form[name="order"]'
 	) as HTMLFormElement;
 	new OrderFormView(orderForm, events, popup);
 
-	// После выбора доставки открываем форму контактов
+	// Обработка изменения данных доставки
 	events.once(AppEvents.DeliveryDataChanged, () => {
+		// Создаем модальное окно для контактных данных
 		const contactsModal = popup.createModal();
 		const contactsContent = contactsModal.querySelector(
 			'.modal__content'
@@ -141,14 +152,14 @@ basketModal.querySelector('.basket__button')?.addEventListener('click', () => {
 		container.appendChild(contactsModal);
 		popup.open(contactsModal);
 
+		// Инициализация формы контактных данных и её обработчиков
 		const contactForm = contactsModal.querySelector(
 			'form[name="contacts"]'
 		) as HTMLFormElement;
 		new ContactFormView(contactForm, events, popup);
 
-		// После заполнения контактов показываем успешное сообщение
+		// Открытие окна успешного оформления после заполнения контактов
 		const successModalView = new SuccessModalView(container, popup, cart);
-
 		events.once(AppEvents.ContactDataChanged, () => {
 			successModalView.open();
 			cartView.updateItemCount(0);
@@ -157,7 +168,7 @@ basketModal.querySelector('.basket__button')?.addEventListener('click', () => {
 	});
 });
 
-// Загрузка каталога и рендер карточек товаров
+// Загрузка каталога товаров с сервера и отрисовка карточек
 catalogService
 	.getProductList()
 	.then((products) => {
@@ -172,13 +183,22 @@ catalogService
 			const productCard = new ProductCard(cardElement);
 			productCard.render(product);
 
+			// Открытие превью товара по клику на карточку
 			cardElement.addEventListener('click', () => {
 				currentItem.setActiveItem(product);
+
 				const previewCard =
 					productPreviewTemplate.content.firstElementChild!.cloneNode(
 						true
 					) as HTMLElement;
-				const previewView = new ProductPreviewView(previewCard);
+				const previewView = new ProductPreviewView(
+					previewCard,
+					popup,
+					cart,
+					cartView,
+					productPreviewModal
+				);
+
 				previewView.render(product);
 
 				const modalContent = productPreviewModal.querySelector(
@@ -187,21 +207,10 @@ catalogService
 				modalContent.innerHTML = '';
 				modalContent.appendChild(previewCard);
 
-				const addToCartButton = previewCard.querySelector('.card__button');
-				if (addToCartButton) {
-					addToCartButton.addEventListener('click', () => {
-						if (currentItem.activeItem) {
-							cart.addProduct(currentItem.activeItem);
-							cartView.updateItemCount(cart.getTotalCount());
-							cartView.updateTotalPrice(cart.calculateTotalPrice());
-							popup.close(productPreviewModal);
-						}
-					});
-				}
-
 				popup.open(productPreviewModal);
 			});
 
+			// Добавляем карточку товара в контейнер каталога
 			catalogContainer.appendChild(cardElement);
 		});
 	})
@@ -212,11 +221,13 @@ catalogService
 
 // Обработчики событий обновления данных формы доставки и контактов
 events.on(AppEvents.DeliveryDataChanged, (data: IDeliveryDataEvent) => {
+	// Обновляем данные доставки и валидацию формы
 	checkoutForm.setDeliveryInfo(data.deliveryData);
 	addressFormView.setValid(checkoutForm.validateDelivery());
 });
 
 events.on(AppEvents.ContactDataChanged, (data: IContactDataEvent) => {
+	// Обновляем контактные данные и валидацию формы
 	checkoutForm.setContactInfo(data.contactData);
 	contactFormView.setValid(checkoutForm.validateContacts());
 });

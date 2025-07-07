@@ -3,18 +3,20 @@ import { EventEmitter } from 'events';
 import { Popup } from './Popup';
 
 /**
- * Класс для управления формой ввода контактных данных (email, телефон)
+ * Класс для управления формой ввода контактных данных (email и телефон)
+ * Отвечает за валидацию, отправку данных и управление состоянием кнопки submit
  */
 export class ContactFormView implements IContactFormView {
-	protected form: HTMLFormElement; // Элемент формы
-	protected events: EventEmitter; // EventEmitter для генерации событий
-	popup: Popup; // Экземпляр Popup для управления модальными окнами
+	protected form: HTMLFormElement; // Элемент формы контактов
+	protected events: EventEmitter; // Система событий для уведомления других компонентов
+	popup: Popup; // Класс для управления модальными окнами
 
 	constructor(form: HTMLFormElement, events: EventEmitter, popup: Popup) {
 		this.form = form;
 		this.events = events;
 		this.popup = popup;
 
+		// Получаем элементы формы по имени
 		const emailInput = this.form.elements.namedItem(
 			'email'
 		) as HTMLInputElement;
@@ -25,28 +27,29 @@ export class ContactFormView implements IContactFormView {
 			'button[type="submit"]'
 		) as HTMLButtonElement;
 
-		// Функция валидации формы
+		// Функция валидации: проверяет корректность email и заполненность телефона
 		const validate = () => {
 			const emailValid =
 				emailInput.value.trim() !== '' && /\S+@\S+\.\S+/.test(emailInput.value);
 			const phoneValid = phoneInput.value.trim() !== '';
-			submitButton.disabled = !(emailValid && phoneValid);
+			submitButton.disabled = !(emailValid && phoneValid); // Кнопка активна только если оба поля валидны
 		};
 
-		// Слушатели ввода для валидации в реальном времени
+		// Подписка на ввод в поля для динамической валидации
 		emailInput.addEventListener('input', validate);
 		phoneInput.addEventListener('input', validate);
 
-		// Начальная валидация при создании экземпляра
+		// Начальная проверка валидности при создании формы
 		validate();
 
-		// Обработка отправки формы
+		// Обработчик отправки формы
 		this.form.addEventListener('submit', (e) => {
 			e.preventDefault();
 
+			// Если кнопка отключена, прерываем отправку
 			if (submitButton.disabled) return;
 
-			// Генерируем событие изменения контактных данных
+			// Генерируем событие с данными контактов для внешних слушателей
 			this.events.emit(AppEvents.ContactDataChanged, {
 				contactData: {
 					email: emailInput.value,
@@ -54,13 +57,16 @@ export class ContactFormView implements IContactFormView {
 				},
 			});
 
-			// Закрываем модальное окно и удаляем его из DOM
+			// Закрываем и удаляем модальное окно с формой
 			this.popup.close(this.form.closest('.modal') as HTMLElement);
 			this.form.closest('.modal')?.remove();
 		});
 	}
 
-	// Метод для управления доступностью кнопки submit
+	/**
+	 * Управление доступностью кнопки submit извне
+	 * @param valid - если true, кнопка активна, иначе отключена
+	 */
 	setValid(valid: boolean): void {
 		const button = this.form.querySelector(
 			'button[type="submit"]'
@@ -68,13 +74,13 @@ export class ContactFormView implements IContactFormView {
 		button.disabled = !valid;
 	}
 
-	// Установить email в форму
-	setEmail(email: string): void {
+	// Сеттер для установки email в поле формы
+	set email(email: string) {
 		(this.form.elements.namedItem('email') as HTMLInputElement).value = email;
 	}
 
-	// Установить телефон в форму
-	setPhone(phone: string): void {
+	// Сеттер для установки телефона в поле формы
+	set phone(phone: string) {
 		(this.form.elements.namedItem('phone') as HTMLInputElement).value = phone;
 	}
 }

@@ -1,46 +1,63 @@
-/**
- * Класс для отображения детального представления товара в модальном окне.
- * Реализует интерфейс IProductPreviewView.
- */
 import { IProduct, IProductPreviewView } from '../../types';
+import { BasketModel } from '../models/BasketModel';
+import { CartView } from './CartView';
+import { Popup } from './Popup';
 
+/**
+ * Класс для отображения превью товара в модальном окне
+ * Отвечает за рендер данных продукта, управление кнопкой "Добавить в корзину"
+ */
 export class ProductPreviewView implements IProductPreviewView {
-	private container: HTMLElement; // Контейнер карточки предпросмотра
-	private titleElement: HTMLElement | null; // Заголовок товара
-	private descriptionElement: HTMLElement | null; // Описание товара
-	private priceElement: HTMLElement | null; // Элемент для отображения цены
-	private categoryElement: HTMLElement | null; // Элемент категории
-	private imageElement: HTMLImageElement | null; // Изображение товара
-	private buttonElement: HTMLButtonElement | null; // Кнопка "добавить в корзину"
+	private container: HTMLElement; // Контейнер с разметкой превью
+	private titleElement: HTMLElement | null; // Элемент заголовка товара
+	private descriptionElement: HTMLElement | null; // Элемент описания товара
+	private priceElement: HTMLElement | null; // Элемент с ценой
+	private categoryElement: HTMLElement | null; // Элемент с категорией товара
+	private imageElement: HTMLImageElement | null; // Элемент с изображением товара
+	private buttonElement: HTMLButtonElement | null; // Кнопка добавления товара в корзину
+	private popup: Popup; // Управление модальными окнами
+	private cart: BasketModel; // Модель корзины для добавления товара
+	private cartView: CartView; // Представление корзины для обновления UI
+	private modalContainer: HTMLElement; // Контейнер модального окна
 
-	/**
-	 * @param container HTML-элемент модального окна предпросмотра
-	 */
-	constructor(container: HTMLElement) {
+	constructor(
+		container: HTMLElement,
+		popup: Popup,
+		cart: BasketModel,
+		cartView: CartView,
+		modalContainer: HTMLElement
+	) {
 		this.container = container;
+
+		// Инициализируем элементы внутри контейнера по классам
 		this.titleElement = container.querySelector('.card__title');
 		this.descriptionElement = container.querySelector('.card__text');
 		this.priceElement = container.querySelector('.card__price');
 		this.categoryElement = container.querySelector('.card__category');
 		this.imageElement = container.querySelector('.card__image');
 		this.buttonElement = container.querySelector('.card__button');
+
+		this.popup = popup;
+		this.cart = cart;
+		this.cartView = cartView;
+		this.modalContainer = modalContainer;
 	}
 
-	/** Устанавливает заголовок товара */
+	/** Установить заголовок товара */
 	setText(text: string): void {
 		if (this.titleElement) {
 			this.titleElement.textContent = text;
 		}
 	}
 
-	/** Устанавливает и форматирует цену товара */
+	/** Отобразить цену с форматированием (в синапсах или "Бесплатно") */
 	setFormattedPrice(price: number | null): void {
 		if (this.priceElement) {
 			this.priceElement.textContent = price ? `${price} синапсов` : 'Бесплатно';
 		}
 	}
 
-	/** Присваивает CSS-класс для отображения категории товара */
+	/** Добавить CSS класс категории товара для стилизации */
 	setCategoryClass(category: string): void {
 		const categoryMap: Record<string, string> = {
 			'софт-скил': 'card__category_soft',
@@ -56,7 +73,7 @@ export class ProductPreviewView implements IProductPreviewView {
 		}
 	}
 
-	/** Включает или отключает кнопку покупки в зависимости от доступности товара */
+	/** Включить/выключить доступность кнопки "Добавить в корзину" */
 	toggleAvailability(isAvailable: boolean): void {
 		if (this.buttonElement) {
 			this.buttonElement.disabled = !isAvailable;
@@ -65,8 +82,8 @@ export class ProductPreviewView implements IProductPreviewView {
 	}
 
 	/**
-	 * Отображает данные товара в карточке предпросмотра
-	 * @param product Объект товара
+	 * Основной метод отрисовки товара в превью
+	 * @param product - объект продукта для отображения
 	 */
 	render(product: IProduct): void {
 		this.setText(product.title);
@@ -82,5 +99,19 @@ export class ProductPreviewView implements IProductPreviewView {
 		}
 
 		this.toggleAvailability(!!product.price);
+
+		// Обновляем кнопку, чтобы сбросить предыдущие обработчики событий
+		if (this.buttonElement) {
+			this.buttonElement.replaceWith(this.buttonElement.cloneNode(true));
+			this.buttonElement = this.container.querySelector('.card__button');
+
+			// Добавляем обработчик добавления товара в корзину по клику
+			this.buttonElement?.addEventListener('click', () => {
+				this.cart.addProduct(product);
+				this.cartView.updateItemCount(this.cart.getTotalCount());
+				this.cartView.updateTotalPrice(this.cart.calculateTotalPrice());
+				this.popup.close(this.modalContainer); // Закрываем модальное окно
+			});
+		}
 	}
 }

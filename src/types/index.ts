@@ -134,8 +134,8 @@ export interface IAddressFormView {
  * Форма ввода контактных данных
  */
 export interface IContactFormView {
-	setEmail(email: string): void; // Установить email в форму
-	setPhone(phone: string): void; // Установить телефон в форму
+	set email(email: string);
+	set phone(phone: string);
 }
 
 /**
@@ -168,6 +168,7 @@ export enum AppEvents {
 	ModalClosed = 'modal:close', // Модальное окно закрыто
 	DeliveryDataChanged = 'delivery:dataChanged', // Данные доставки изменены
 	ContactDataChanged = 'contact:dataChanged', // Контактные данные изменены
+	OrderStarted = 'orderStarted', // ← Добавляем этот ивент
 }
 
 /**
